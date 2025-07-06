@@ -1,32 +1,22 @@
 FROM php:8.3-fpm-alpine
 
-ARG user=yourusername
-ARG uid=1000
-
-RUN apk update && apk add --no-cache \
-    git \
+RUN apk add --no-cache \
     curl \
+    git \
+    zip \
+    unzip \
     libpng-dev \
     oniguruma-dev \
     libxml2-dev \
-    zip \
-    unzip \
-    postgresql-dev \
-    bash \
-    shadow \
-    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd sockets
+    postgresql-dev
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
 
-RUN useradd -G www-data,root -u $uid -d /home/$user $user && \
-    mkdir -p /home/$user/.composer && \
-    chown -R $user:$user /home/$user
-
-RUN pecl install -o -f redis && \
-    rm -rf /tmp/pear && \
-    docker-php-ext-enable redis
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /var/www
-COPY custom.ini /usr/local/etc/php/conf.d/custom.ini
 
-USER $user
+COPY . /var/www
+RUN chown -R www-data:www-data /var/www
+
+CMD ["php-fpm"]
